@@ -55,7 +55,7 @@ configure_file("Makefile.cmake.bitcode.rules" "Makefile.cmake.bitcode.rules" COP
 
 # Makefile for root runtime directory
 # Copy over makefiles for libraries
-set(BITCODE_LIBRARIES "Intrinsic" "klee-libc")
+set(BITCODE_LIBRARIES "Intrinsic" "klee-libc" "svcomp64" "svcomp32")
 if (ENABLE_POSIX_RUNTIME)
   list(APPEND BITCODE_LIBRARIES "POSIX")
 endif()
@@ -135,10 +135,14 @@ set(RUNTIME_FILES_TO_INSTALL)
 if (USE_RUNTIME_BINARY_TYPE_HACK)
   list(APPEND RUNTIME_FILES_TO_INSTALL
     "${KLEE_RUNTIME_DIRECTORY}/kleeRuntimeIntrinsic.bc"
+    "${KLEE_RUNTIME_DIRECTORY}/kleeSVCOMPRuntime64.bc"
+    "${KLEE_RUNTIME_DIRECTORY}/kleeSVCOMPRuntime32.bc"
     "${KLEE_RUNTIME_DIRECTORY}/klee-libc.bc")
 else()
   list(APPEND RUNTIME_FILES_TO_INSTALL
     "${KLEE_RUNTIME_DIRECTORY}/libkleeRuntimeIntrinsic.bca"
+    "${KLEE_RUNTIME_DIRECTORY}/kleeSVCOMPRuntime64.bca"
+    "${KLEE_RUNTIME_DIRECTORY}/kleeSVCOMPRuntime32.bc"
     "${KLEE_RUNTIME_DIRECTORY}/libklee-libc.bca")
 endif()
 

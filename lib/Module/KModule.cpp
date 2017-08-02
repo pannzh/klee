@@ -82,6 +82,11 @@ namespace {
                                    "execute switch internally")
                         KLEE_LLVM_CL_VAL_END),
              cl::init(eSwitchTypeInternal));
+
+  cl::opt<bool>
+  SVCOMPRuntime("svcomp-runtime",
+               cl::desc("Add SV-COMP runtime functions"),
+               cl::init(false));
   
   cl::opt<bool>
   DebugPrintEscapingFunctions("debug-print-escaping-functions", 
@@ -289,6 +294,47 @@ void KModule::prepare(const Interpreter::ModuleOptions &opts,
       "kleeRuntimeIntrinsic.bc"
     );
   module = linkWithLibrary(module, LibPath.str());
+
+  // Add SV-COMP runtime if requested
+  if (SVCOMPRuntime) {
+    LibPath = opts.LibraryDir;
+    SmallString<24> runtimeFileName;
+    llvm::StringRef targetName = module->getTargetTriple();
+    // Different versions of the runtime are required based on target
+    // because the size of some types differ. For example
+    // __VERIFIER_nondet_long() return type is i32 on i386 but i64 on x86_64
+    if (targetName.startswith("x86_64")) {
+        runtimeFileName = "kleeSVCOMPRuntime64";
+    } else if (targetName.startswith("i386")) {
+        runtimeFileName = "kleeSVCOMPRuntime32";
+    } else {
+        klee_error("Cannot determine which SV-COMP runtime to use from target %s",
+                   targetName.data());
+    }
+#if LLVM_VERSION_CODE >= LLVM_VERSION(3,3)
+    runtimeFileName += ".bc";
+#else
+    runtimeFileName += ".bca";
+#endif
+
+    // Some SV-COMP benchmarks might provide their own implementation of
+    // __VERIFIER functions. Remove them
+    llvm::Function* existingVERIFIER_assert = module->getFunction("__VERIFIER_assert");
+    if (existingVERIFIER_assert) {
+      existingVERIFIER_assert->deleteBody();
+      klee_warning("Deleting existing implementation of %s", existingVERIFIER_assert->getName().data());
+    }
+
+
+    llvm::sys::path::append(LibPath, runtimeFileName.str());
+    module = linkWithLibrary(module, LibPath.str());
+
+    // Add all error reporting functions as internal functions so we report
+    // failures at the correct location
+    addInternalFunction("__VERIFIER_error");
+    addInternalFunction("__VERIFIER_assert");
+    addInternalFunction("__VERIFIER_assume");
+  }
 
   // Add internal functions which are not used to check if instructions
   // have been already visited
