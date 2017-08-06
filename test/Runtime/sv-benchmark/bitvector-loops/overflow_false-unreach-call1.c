@@ -12,7 +12,7 @@ void __VERIFIER_assert(int cond) {
 }
 
 int main(void) {
-  unsigned int x = 10;
+  unsigned int x = 4294967210;
 
   while (x >= 10) {
     x += 2;
